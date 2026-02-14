@@ -155,92 +155,9 @@ npm test
 # Run backend tests
 cd backend
 npm test
-```
 
-## 📦 Deployment
 
-### Free Hosting Options:
-- **Frontend**: Vercel, Netlify, GitHub Pages
-- **Backend**: Railway.app, Render, Fly.io
-- **Database**: Supabase, Railway PostgreSQL
 
-### Production Setup:
-1. Build frontend: `npm run build`
-2. Configure environment variables
-3. Set up PostgreSQL/MongoDB for production
-4. Deploy backend and frontend separately
-5. Configure CORS and security headers
 
-## 💰 Cost Estimates
 
-### Development (100% Free):
-- All local development
-- Use Ollama for AI (free, runs on your PC)
-- SQLite database (free)
 
-### Production (100 users):
-- Hosting: $0-20/month (free tiers)
-- AI API: $50-100/month (if using OpenAI)
-- Total: $50-120/month
-
-### Monetization Ready:
-- Freemium model implemented
-- Payment integration via Stripe
-- $29/month suggested pricing
-- Break-even at ~5 paying users
-
-## 🛠️ Development Roadmap
-
-### ✅ Phase 1 (MVP - Months 1-3)
-- [x] Basic authentication
-- [x] Greetings module
-- [x] Emotion recognition
-- [x] Parent dashboard V1
-- [x] Progress tracking
-
-### 🚧 Phase 2 (Months 4-6)
-- [ ] Voice input/output
-- [ ] Social scenarios
-- [ ] Conversation practice
-- [ ] Enhanced dashboard
-
-### 📋 Phase 3 (Months 7-9)
-- [ ] Video recording
-- [ ] AI video analysis
-- [ ] Gamification system
-- [ ] Multi-user support
-
-### 🎯 Phase 4 (Months 10-12)
-- [ ] Additional life skills modules
-- [ ] Mobile app development
-- [ ] School/classroom features
-- [ ] Public launch
-
-## 🤝 Contributing
-
-This is an educational project. Contributions welcome!
-
-1. Fork the repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Open pull request
-
-## 📄 License
-
-MIT License - feel free to use for educational or commercial purposes
-
-## 👥 Support
-
-- Email: support@learningplatform.com
-- Documentation: /docs
-- Issues: GitHub Issues
-
-## 🙏 Acknowledgments
-
-Built with guidance for families of specially-abled children.
-Special thanks to special education consultants and beta testers.
-
----
-
-**Note**: This is a complete, production-ready codebase. All modules are implemented and functional. Choose your AI service (local free or cloud paid) based on your needs and budget.
