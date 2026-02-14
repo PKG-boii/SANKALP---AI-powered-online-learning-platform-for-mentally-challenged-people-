@@ -1,22 +1,23 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const Database = require("better-sqlite3");
+const path = require("path");
 
-const DB_PATH = path.join(__dirname, '../../database/learning.db');
+const DB_PATH = path.join(__dirname, "../../database/learning.db");
 
-class Database {
+class DB {
   constructor() {
     this.db = null;
   }
 
   initialize() {
-    this.db = new sqlite3.Database(DB_PATH, (err) => {
-      if (err) {
-        console.error('❌ Database connection failed:', err);
-      } else {
-        console.log('✅ Database connected');
-        this.createTables();
-      }
-    });
+    try {
+      this.db = new Database(DB_PATH);
+      console.log("✅ Database connected");
+
+      this.createTables();
+    } catch (err) {
+      console.error("❌ Database connection failed:", err);
+      process.exit(1);
+    }
   }
 
   createTables() {
@@ -63,52 +64,53 @@ class Database {
       );
     `;
 
-    this.db.exec(tables, (err) => {
-      if (err) {
-        console.error('❌ Error creating tables:', err);
-      } else {
-        console.log('✅ Database tables ready');
-      }
-    });
+    try {
+      this.db.exec(tables);
+      console.log("✅ Database tables ready");
+    } catch (err) {
+      console.error("❌ Error creating tables:", err);
+    }
   }
 
   saveActivity(activity) {
-    return new Promise((resolve, reject) => {
-      const query = `
-        INSERT INTO activities (child_id, module, user_input, ai_response, score, feedback)
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO activities (
+          child_id, module, user_input, ai_response, score, feedback
+        )
         VALUES (?, ?, ?, ?, ?, ?)
-      `;
+      `);
 
-      this.db.run(query, [
+      const result = stmt.run(
         activity.childId,
         activity.module,
         activity.userInput,
         activity.aiResponse,
         activity.score,
         activity.feedback
-      ], function(err) {
-        if (err) reject(err);
-        else resolve({ id: this.lastID });
-      });
-    });
+      );
+
+      return { id: result.lastInsertRowid };
+    } catch (err) {
+      throw err;
+    }
   }
 
   getProgress(childId, module = null) {
-    return new Promise((resolve, reject) => {
-      let query = 'SELECT * FROM progress WHERE child_id = ?';
+    try {
+      let query = "SELECT * FROM progress WHERE child_id = ?";
       const params = [childId];
 
       if (module) {
-        query += ' AND module = ?';
+        query += " AND module = ?";
         params.push(module);
       }
 
-      this.db.all(query, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+      return this.db.prepare(query).all(...params);
+    } catch (err) {
+      throw err;
+    }
   }
 }
 
-module.exports = new Database();
+module.exports = new DB();
