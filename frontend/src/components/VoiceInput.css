@@ -1,0 +1,9 @@
+.voice-input {
+  width: 100%;
+  text-align: center;
+}
+
+.voice-input button {
+  width: 100%;
+  max-width: 400px;
+}
