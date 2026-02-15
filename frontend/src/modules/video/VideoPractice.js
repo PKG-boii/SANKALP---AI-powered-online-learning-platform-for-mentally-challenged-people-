@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const VideoPractice = () => {
@@ -6,20 +6,12 @@ const VideoPractice = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [stream, setStream] = useState(null);
+  const [recordedVideos, setRecordedVideos] = useState([]);
+  const [currentVideoURL, setCurrentVideoURL] = useState(null);
+  
   const videoRef = useRef(null);
-  const [recordedVideoURL, setRecordedVideoURL] = useState(null);
-
-  // Auto-start camera when component loads
-  React.useEffect(() => {
-    startCamera();
-    
-    // Cleanup: stop camera when leaving page
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const startCamera = async () => {
     try {
@@ -30,7 +22,12 @@ const VideoPractice = () => {
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
+        videoRef.current.play().catch(err => {
+          // Ignore play interruption errors
+          if (err.name !== 'AbortError') {
+            console.error('Video play error:', err);
+          }
+        });
       }
     } catch (error) {
       alert('Camera access denied. Please allow camera access to use this feature.');
@@ -38,45 +35,103 @@ const VideoPractice = () => {
     }
   };
 
+  // Auto-start camera when component loads
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (isMounted) {
+      startCamera();
+    }
+    
+    return () => {
+      isMounted = false;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const startRecording = () => {
+    if (!stream) return;
+    
+    chunksRef.current = [];
+    
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp8,opus'
+    });
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunksRef.current.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      
+      const newVideo = {
+        id: Date.now(),
+        url: url,
+        timestamp: new Date().toLocaleString()
+      };
+      
+      setRecordedVideos(prev => [...prev, newVideo]);
+      setCurrentVideoURL(url);
+      setHasRecorded(true);
+    };
+    
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
     setIsRecording(true);
-    setHasRecorded(false);
-    // In a real app, this would use MediaRecorder API
+    
+    // Auto-stop after 10 seconds
     setTimeout(() => {
-      stopRecording();
-    }, 5000); // Auto-stop after 5 seconds for demo
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        stopRecording();
+      }
+    }, 10000);
   };
 
   const stopRecording = () => {
-    setIsRecording(false);
-    setHasRecorded(true);
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
-    // In real app, would create blob URL of recording
-    alert('Recording saved! In the real app, you would see your video here and get AI feedback on your practice.');
+  };
+
+  const recordAgain = () => {
+    setHasRecorded(false);
+    setCurrentVideoURL(null);
+  };
+
+  const deleteVideo = (videoId) => {
+    const videoToDelete = recordedVideos.find(v => v.id === videoId);
+    if (videoToDelete) {
+      URL.revokeObjectURL(videoToDelete.url);
+    }
+    setRecordedVideos(recordedVideos.filter(v => v.id !== videoId));
   };
 
   return (
-    <div className="video-practice" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #F44336 0%, #E91E63 100%)', padding: '40px 20px' }}>
+    <div className="video-practice" style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #F44336 0%, #E91E63 100%)', 
+      padding: '40px 20px' 
+    }}>
       <div className="container-narrow">
-        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+        <div className="card" style={{ 
+          padding: '50px', 
+          textAlign: 'center',
+          background: 'rgba(255,255,255,0.95)',
+          borderRadius: '30px'
+        }}>
           <h1>📹 Video Practice</h1>
           <p style={{ fontSize: '1.2rem', marginBottom: '30px' }}>
             Record yourself practicing greetings and get feedback!
           </p>
 
-          <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
-            <h3>Instructions:</h3>
-            <ol style={{ textAlign: 'left', fontSize: '1.1rem', lineHeight: '2' }}>
-              <li>Click "Start Camera" to begin</li>
-              <li>Position yourself in frame</li>
-              <li>Click "Record" when ready</li>
-              <li>Practice your greeting (smile, wave, say hello)</li>
-              <li>Review and get feedback</li>
-            </ol>
-          </div>
-
+          {/* Live Video Feed */}
           {!hasRecorded && (
             <div>
               <div style={{ 
@@ -96,7 +151,7 @@ const VideoPractice = () => {
                     width: '100%', 
                     maxWidth: '800px', 
                     borderRadius: '20px',
-                    transform: 'scaleX(-1)', // Mirror effect
+                    transform: 'scaleX(-1)',
                     display: 'block'
                   }}
                 />
@@ -113,7 +168,7 @@ const VideoPractice = () => {
                     fontSize: '1.2rem',
                     animation: 'pulse 1s infinite'
                   }}>
-                    🔴 RECORDING
+                    🔴 RECORDING (10 sec max)
                   </div>
                 )}
               </div>
@@ -143,45 +198,117 @@ const VideoPractice = () => {
             </div>
           )}
 
-          {hasRecorded && (
-            <div style={{ background: '#E8F5E9', padding: '30px', borderRadius: '12px', marginBottom: '20px' }}>
-              <h2>✅ Great Job!</h2>
-              <p style={{ fontSize: '1.2rem', marginTop: '20px' }}>
-                In the full version, you would see:
-              </p>
-              <ul style={{ textAlign: 'left', fontSize: '1.1rem', marginTop: '20px' }}>
-                <li>✅ Your recorded video</li>
-                <li>✅ AI analysis of your greeting</li>
-                <li>✅ Feedback on smile, eye contact, and voice</li>
-                <li>✅ Comparison with example videos</li>
-                <li>✅ Score and encouragement</li>
-              </ul>
-              <button 
-                className="btn btn-primary btn-large"
-                onClick={() => {
-                  setHasRecorded(false);
-                  setStream(null);
-                }}
-                style={{ marginTop: '20px' }}
-              >
-                Record Again
-              </button>
+          {/* Playback of Just Recorded Video */}
+          {hasRecorded && currentVideoURL && (
+            <div style={{ marginBottom: '30px' }}>
+              <h2 style={{ marginBottom: '20px' }}>✅ Recording Complete!</h2>
+              <div style={{ 
+                background: '#000', 
+                borderRadius: '20px', 
+                overflow: 'hidden', 
+                marginBottom: '30px' 
+              }}>
+                <video 
+                  src={currentVideoURL}
+                  controls
+                  style={{ 
+                    width: '100%', 
+                    maxWidth: '800px',
+                    borderRadius: '20px'
+                  }}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                <button 
+                  className="btn btn-primary btn-large"
+                  onClick={recordAgain}
+                >
+                  📹 Record Another
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* List of All Recorded Videos */}
+          {recordedVideos.length > 0 && (
+            <div style={{ 
+              marginTop: '50px', 
+              padding: '30px', 
+              background: '#f5f5f5', 
+              borderRadius: '20px' 
+            }}>
+              <h2 style={{ marginBottom: '25px' }}>
+                🎬 Your Recordings ({recordedVideos.length})
+              </h2>
+              
+              <div style={{ 
+                display: 'grid', 
+                gap: '20px',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))'
+              }}>
+                {recordedVideos.map((video, index) => (
+                  <div 
+                    key={video.id}
+                    style={{ 
+                      background: 'white', 
+                      padding: '15px', 
+                      borderRadius: '15px',
+                      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <div style={{ 
+                      fontWeight: 'bold', 
+                      marginBottom: '10px',
+                      fontSize: '1.1rem'
+                    }}>
+                      Recording #{recordedVideos.length - index}
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.9rem', 
+                      color: '#666', 
+                      marginBottom: '15px' 
+                    }}>
+                      {video.timestamp}
+                    </div>
+                    <video 
+                      src={video.url}
+                      controls
+                      style={{ 
+                        width: '100%', 
+                        borderRadius: '10px',
+                        marginBottom: '15px'
+                      }}
+                    />
+                    <button 
+                      className="btn btn-danger"
+                      onClick={() => deleteVideo(video.id)}
+                      style={{ width: '100%' }}
+                    >
+                      🗑 Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           <button 
             className="btn" 
             onClick={() => navigate('/learn')}
-            style={{ marginTop: '20px' }}
+            style={{ marginTop: '30px' }}
           >
             ← Back to Learning
           </button>
-
-          <div style={{ marginTop: '30px', padding: '20px', background: '#FFF3E0', borderRadius: '8px', fontSize: '0.95rem' }}>
-            <strong>Note:</strong> This is a demo version. The full app would include actual video recording and AI-powered feedback on your practice sessions.
-          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 };
