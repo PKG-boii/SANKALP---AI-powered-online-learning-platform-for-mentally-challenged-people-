@@ -111,6 +111,32 @@ class DB {
       throw err;
     }
   }
+  
+  get(query, params = []) {
+    try {
+      return this.db.prepare(query).get(...params);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  all(query, params = []) {
+    try {
+      return this.db.prepare(query).all(...params);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  run(query, params = []) {
+    try {
+      const result = this.db.prepare(query).run(...params);
+      return { id: result.lastInsertRowid, changes: result.changes };
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 module.exports = new DB();
+

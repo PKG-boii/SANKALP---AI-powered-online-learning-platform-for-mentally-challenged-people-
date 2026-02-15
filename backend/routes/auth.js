@@ -12,27 +12,25 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    db.db.run(
+    const result = db.run(
       'INSERT INTO users (email, password, role) VALUES (?, ?, ?)',
-      [email, hashedPassword, 'parent'],
-      function(err) {
-        if (err) {
-          return res.status(400).json({
-            success: false,
-            message: 'User already exists'
-          });
-        }
-
-        const token = jwt.sign({ id: this.lastID, email }, JWT_SECRET);
-
-        res.json({
-          success: true,
-          token,
-          user: { id: this.lastID, email, role: 'parent' }
-        });
-      }
+      [email, hashedPassword, 'parent']
     );
+
+    const token = jwt.sign({ id: result.id, email }, JWT_SECRET);
+
+    res.json({
+      success: true,
+      token,
+      user: { id: result.id, email, role: 'parent' }
+    });
   } catch (error) {
+    if (error.message.includes('UNIQUE constraint')) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists'
+      });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -41,30 +39,30 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    db.db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-      if (err || !user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
-      }
+    const user = db.get('SELECT * FROM users WHERE email = ?', [email]);
 
-      const isValid = await bcrypt.compare(password, user.password);
-
-      if (!isValid) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
-      }
-
-      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-
-      res.json({
-        success: true,
-        token,
-        user: { id: user.id, email: user.email, role: user.role }
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
       });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
+
+    res.json({
+      success: true,
+      token,
+      user: { id: user.id, email: user.email, role: user.role }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
