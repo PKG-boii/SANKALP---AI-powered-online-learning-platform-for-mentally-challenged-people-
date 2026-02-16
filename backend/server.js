@@ -12,7 +12,8 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: [
-    'https://learning-platform-qav7982wp-piyush-s-projects-8f9c0a0e.vercel.app/'  // Your Vercel URL
+    'http://localhost:3000',
+    'https://learning-platform-nu-dun.vercel.app'
   ],
   credentials: true
 }));
