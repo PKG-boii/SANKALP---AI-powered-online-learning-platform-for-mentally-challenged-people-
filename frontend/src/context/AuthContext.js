@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [currentChild, setCurrentChild] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  const API_URL = 'https://sankalp-ai-powered-online-learning-t3o4.onrender.com';
 
   useEffect(() => {
     // Check if user is already logged in
