@@ -148,7 +148,7 @@ The platform uses SQLite for easy setup. Schema includes:
 ## 🧪 Testing
 
 ```bash
-# Run frontend tests
+# Run frontend t add .ests
 cd frontend
 npm test
 
