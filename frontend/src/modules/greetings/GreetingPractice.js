@@ -6,6 +6,7 @@ import VoiceInput from '../../components/VoiceInput';
 import './GreetingPractice.css';
 
 const GreetingPractice = () => {
+  const navigate = useNavigate();
   const { currentChild, API_URL } = useAuth();
   const [step, setStep] = useState('intro'); // intro, practice, feedback
   const [userInput, setUserInput] = useState('');
