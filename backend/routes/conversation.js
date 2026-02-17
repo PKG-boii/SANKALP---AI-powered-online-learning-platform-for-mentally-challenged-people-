@@ -44,34 +44,30 @@ router.post('/greeting', async (req, res) => {
 });
 
 // Emotion recognition endpoint
-router.post('/emotion', async (req, res) => {
+router.post('/chat', async (req, res) => {
   try {
-    const { childId, emotion, correctEmotion, isCorrect } = req.body;
+    const { userInput, character, characterName, conversationHistory } = req.body;
 
-    const result = await aiService.getEmotionFeedback(emotion, isCorrect, { correctEmotion });
+    const characterPrompts = {
+      friend: `You are Alex, a friendly peer of the same age. Use casual, simple language. Be enthusiastic and encouraging. Keep responses to 1-2 short sentences.`,
+      teacher: `You are Ms. Johnson, a kind and patient teacher. Be encouraging and educational. Use simple clear language. Keep responses to 1-2 short sentences.`,
+      shopkeeper: `You are Mr. Lee, a helpful and friendly shopkeeper. Be polite and helpful. Keep responses to 1-2 short sentences.`
+    };
 
-    // Save activity
-    if (childId) {
-      await db.saveActivity({
-        childId,
-        module: 'emotions',
-        userInput: emotion,
-        aiResponse: result.feedback,
-        score: result.score,
-        feedback: JSON.stringify([result.explanation])
-      });
-    }
+    const prompt = characterPrompts[character] || characterPrompts.friend;
+
+    // Use the same function as greeting module
+    const result = await aiService.getGreetingResponse(userInput, conversationHistory, prompt);
 
     res.json({
       success: true,
-      data: result
+      data: { aiResponse: result.aiResponse }
     });
   } catch (error) {
-    console.error('Emotion recognition error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process emotion',
-      error: error.message
+    console.error('Chat error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
     });
   }
 });

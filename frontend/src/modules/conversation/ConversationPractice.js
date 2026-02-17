@@ -20,33 +20,50 @@ const ConversationPractice = () => {
     ]);
   };
 
-  const sendMessage = () => {
-    if (!userInput.trim()) return;
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!userInput.trim() || isLoading) return;
 
     const newConversation = [
       ...conversation,
       { role: 'user', message: userInput }
     ];
 
-    // Simple AI response (in real version, this calls the backend)
-    const responses = [
-      "That's great! Tell me more!",
-      "Interesting! What else?",
-      "I like that! How about you?",
-      "Nice! Want to do something fun?"
-    ];
-    
-    const aiResponse = responses[Math.floor(Math.random() * responses.length)];
-    
-    setTimeout(() => {
-      setConversation([
-        ...newConversation,
-        { role: 'ai', message: aiResponse }
-      ]);
-    }, 1000);
-
     setConversation(newConversation);
     setUserInput('');
+    setIsLoading(true);
+
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://sankalp-ai-powered-online-learning-t3o4.onrender.com';
+      
+      const response = await fetch(`${API_URL}/api/conversation/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userInput: userInput,
+          character: character.id,
+          characterName: character.name,
+          conversationHistory: newConversation
+        })
+      });
+
+      const data = await response.json();
+
+      setConversation([
+        ...newConversation,
+        { role: 'ai', message: data.data?.aiResponse || data.message || "That's interesting! Tell me more!" }
+      ]);
+    } catch (error) {
+      console.error('AI error:', error);
+      // Fallback response if AI fails
+      setConversation([
+        ...newConversation,
+        { role: 'ai', message: "That's great! Tell me more!" }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!character) {
@@ -123,7 +140,22 @@ const ConversationPractice = () => {
             ))}
           </div>
 
+          
+
           <div style={{ display: 'flex', gap: '10px' }}>
+            {isLoading && (
+            <div style={{ 
+              textAlign: 'left', 
+              marginBottom: '15px',
+              padding: '10px 20px',
+              background: 'white',
+              borderRadius: '20px',
+              display: 'inline-block',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              {character.emoji} typing...
+            </div>
+          )}
             <input
               type="text"
               value={userInput}
