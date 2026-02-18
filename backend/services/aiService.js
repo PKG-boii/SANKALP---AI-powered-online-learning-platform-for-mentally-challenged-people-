@@ -11,8 +11,8 @@ class AIService {
    * Get AI response for greeting practice
    */
   async getGreetingResponse(userInput, conversationHistory = []) {
-    const systemPrompt = `You are Alex, a friendly AI helping children with Down syndrome practice social skills. 
-You're currently teaching greetings and introductions.
+    const systemPrompt = `You are Alex, a friendly AI talking to children. 
+
 
 Guidelines:
 - Use simple, clear language (5-7 word sentences max)
@@ -199,7 +199,7 @@ ${conversationText ? conversationText + '\n' : ''}User: ${userInput}
 AI:`;
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
       {
         contents: [{
           parts: [{
@@ -208,7 +208,7 @@ AI:`;
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 150,
+          maxOutputTokens: 1024,
           topP: 0.9
         }
       },
