@@ -60,10 +60,14 @@ Guidelines:
    */
   async getCompletion(systemPrompt, userInput, conversationHistory = []) {
     try {
-      if (this.service === 'openai') {
+      const service = this.service.toLowerCase(); // Handle case sensitivity
+      
+      if (service === 'openai') {
         return await this.getOpenAICompletion(systemPrompt, userInput, conversationHistory);
-      } else if (this.service === 'anthropic') {
+      } else if (service === 'anthropic') {
         return await this.getAnthropicCompletion(systemPrompt, userInput, conversationHistory);
+      } else if (service === 'gemini') {
+        return await this.getGeminiCompletion(systemPrompt, userInput, conversationHistory);
       } else {
         // Default to local Ollama
         return await this.getOllamaCompletion(systemPrompt, userInput, conversationHistory);
@@ -170,6 +174,59 @@ Alex:`;
 
     return response.data.content[0].text;
   }
+
+  /**
+   * Google Gemini Integration - PAID
+   */
+  /**
+ * Google Gemini Integration - PAID
+ */
+async getGeminiCompletion(systemPrompt, userInput, conversationHistory) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+
+  try {
+    // Build the full prompt with system instructions
+    const conversationText = conversationHistory
+      .map(msg => `${msg.role === 'user' ? 'User' : 'AI'}: ${msg.message}`)
+      .join('\n');
+
+    const fullPrompt = `${systemPrompt}
+
+${conversationText ? conversationText + '\n' : ''}User: ${userInput}
+AI:`;
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        contents: [{
+          parts: [{
+            text: fullPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 150,
+          topP: 0.9
+        }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Extract text from response
+    const text = response.data.candidates[0].content.parts[0].text;
+    return text.trim();
+  } catch (error) {
+    console.error('Gemini API error:', error.response?.data || error.message);
+    throw new Error(`Gemini API error: ${error.response?.data?.error?.message || error.message}`);
+  }
+}
 
   /**
    * Analyze greeting response
